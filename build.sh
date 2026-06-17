@@ -3,8 +3,8 @@
 # Update package lists
 apt-get update
 
-# Install FFmpeg
-apt-get install -y ffmpeg
+# Install FFmpeg and Node.js for yt-dlp JavaScript extraction
+apt-get install -y ffmpeg nodejs
 
 # Install Python dependencies
 pip install -r requirements.txt

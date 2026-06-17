@@ -73,13 +73,22 @@ def get_status():
 @app.route("/download", methods=["GET", "POST"])
 def download():
     """ダウンロード処理"""
-    data = request.get_json() or {}
-    url = data.get("url") or request.args.get("url")
-    type_ = data.get("type", "audio") or request.args.get("type", "audio")
+    if request.method == "POST":
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            data = request.form.to_dict()
+    else:
+        data = request.args.to_dict()
+
+    url = data.get("url")
+    type_ = data.get("type", "audio")
+
+    log_message(f"リクエスト受信: method={request.method}, url={url}, type={type_}, args={request.args.to_dict()}, form={request.form.to_dict()}")
 
     if not url:
         download_state["error"] = "URLが入力されていません"
         download_state["status"] = "error"
+        log_message("リクエストに URL がありません")
         return jsonify({"error": "URL is required"}), 400
 
     download_state["status"] = "downloading"
@@ -93,9 +102,12 @@ def download():
     try:
         # environment variable cookies and local cookies.txt
         cookie_file = create_cookiefile_from_env(temp_dir) or get_local_cookie_file()
-        cookie_options = {"quiet": True}
+        cookie_options = {"quiet": True, "js_runtime": "node"}
         if cookie_file:
             cookie_options["cookiefile"] = cookie_file
+            log_message(f"Cookieファイル使用: {cookie_file}")
+        else:
+            log_message("Cookieファイル未検出: YOUTUBE_COOKIES または cookies.txt が必要な場合があります")
 
         # タイトル取得（事前情報取得）
         log_message("ビデオ情報を取得中...")
@@ -129,6 +141,7 @@ def download():
                 "quiet": True,
                 "progress_hooks": [progress_hook],
                 "merge_output_format": "mp4",
+                "js_runtime": "node",
             }
             target_file = os.path.join(temp_dir, f"{title}.mp4")
             log_message("動画ファイル形式: MP4")
