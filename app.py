@@ -41,6 +41,26 @@ def progress_hook(d):
         log_message("ダウンロード完了、処理中...")
         download_state["progress"] = 100
 
+
+def get_local_cookie_file():
+    """ローカルの cookies.txt を返す"""
+    cookie_file = os.path.join(os.getcwd(), "cookies.txt")
+    if os.path.isfile(cookie_file) and os.path.getsize(cookie_file) > 0:
+        return cookie_file
+    return None
+
+
+def create_cookiefile_from_env(temp_dir):
+    """YOUTUBE_COOKIES 環境変数から一時 cookie ファイルを作成"""
+    env_cookie = os.environ.get("YOUTUBE_COOKIES", "").strip()
+    if not env_cookie:
+        return None
+    cookie_file = os.path.join(temp_dir, "cookies.txt")
+    with open(cookie_file, "w", encoding="utf-8") as f:
+        f.write(env_cookie)
+    return cookie_file
+
+
 @app.route("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")
@@ -71,9 +91,15 @@ def download():
     temp_dir = tempfile.mkdtemp()
 
     try:
+        # environment variable cookies and local cookies.txt
+        cookie_file = create_cookiefile_from_env(temp_dir) or get_local_cookie_file()
+        cookie_options = {"quiet": True}
+        if cookie_file:
+            cookie_options["cookiefile"] = cookie_file
+
         # タイトル取得（事前情報取得）
         log_message("ビデオ情報を取得中...")
-        with yt_dlp.YoutubeDL({"cookiefile": "cookies.txt", "quiet": True}) as ydl:
+        with yt_dlp.YoutubeDL(cookie_options) as ydl:
             info = ydl.extract_info(url, download=False)
             title = info.get("title", "downloaded").replace("/", "_").replace("\\", "_")
             download_state["title"] = title
@@ -84,7 +110,6 @@ def download():
             ydl_opts = {
                 "format": "bestaudio",
                 "outtmpl": output_path,
-                "cookiefile": "cookies.txt",
                 "quiet": True,
                 "progress_hooks": [progress_hook],
                 "postprocessors": [{
@@ -101,7 +126,6 @@ def download():
             ydl_opts = {
                 "format": "bestvideo+bestaudio/best",
                 "outtmpl": output_path,
-                "cookiefile": "cookies.txt",
                 "quiet": True,
                 "progress_hooks": [progress_hook],
                 "merge_output_format": "mp4",
@@ -109,9 +133,8 @@ def download():
             target_file = os.path.join(temp_dir, f"{title}.mp4")
             log_message("動画ファイル形式: MP4")
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-
+        if cookie_file:
+            ydl_opts["cookiefile"] = cookie_file
         log_message("処理完了、ファイルを送信中...")
         download_state["status"] = "completed"
         download_state["progress"] = 100
@@ -120,6 +143,12 @@ def download():
 
     except Exception as e:
         error_msg = str(e)
+        if "Sign in to confirm you\'re not a bot" in error_msg or "cookies-from-browser" in error_msg or "--cookies" in error_msg:
+            error_msg = (
+                "YouTubeのアクセス制限によりダウンロードできませんでした。"
+                " cookies.txt を使った認証が必要な場合があります。"
+                " 自分のYouTubeクッキーを cookies.txt に保存し、再デプロイしてください。"
+            )
         log_message(f"エラー: {error_msg}")
         download_state["error"] = error_msg
         download_state["status"] = "error"
