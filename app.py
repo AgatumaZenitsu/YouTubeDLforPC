@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file, send_from_directory, jsonify
+from flask import Flask, request, send_file, send_from_directory, jsonify, after_this_request
 from flask_cors import CORS
 import yt_dlp
 import os
@@ -158,7 +158,15 @@ def download():
         log_message("処理完了、ファイルを送信中...")
         download_state["status"] = "completed"
         download_state["progress"] = 100
-        
+
+        @after_this_request
+        def cleanup(response):
+            try:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            except Exception:
+                pass
+            return response
+
         return send_file(target_file, as_attachment=True)
 
     except Exception as e:
@@ -175,7 +183,10 @@ def download():
         return jsonify({"error": error_msg}), 500
 
     finally:
-        shutil.rmtree(temp_dir, ignore_errors=True)
+        # cleanup is handled after response if download is successful;
+        # if an exception occurs before response creation, remove temp files here.
+        if download_state["status"] != "completed":
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
