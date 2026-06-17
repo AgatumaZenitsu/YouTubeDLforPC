@@ -41,6 +41,48 @@ def progress_hook(d):
         log_message("ダウンロード完了、処理中...")
         download_state["progress"] = 100
 
+
+def parse_netscape_cookie_file(cookie_path):
+    """Netscape 形式 cookie ファイルを解析し、ドメインと cookie 名を集計する"""
+    domains = {}
+    names = set()
+    try:
+        with open(cookie_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                parts = line.split("\t")
+                if len(parts) < 7:
+                    continue
+                domain = parts[0].lstrip(".")
+                name = parts[5]
+                domains.setdefault(domain, []).append(name)
+                names.add(name)
+    except Exception as e:
+        log_message(f"Cookie 解析エラー: {e}")
+    return domains, names
+
+
+def log_cookie_summary(cookie_path, source):
+    domains, names = parse_netscape_cookie_file(cookie_path)
+    if not domains:
+        log_message(f"{source} の cookie が読み取れませんでした。ファイル形式を確認してください。")
+        return
+    domain_list = ", ".join(sorted(domains.keys()))
+    log_message(f"{source} の cookie を読み込みました: ドメイン={domain_list}")
+    auth_names = {"SID", "SAPISID", "APISID", "HSID", "SSID", "SIDCC"}
+    found_auth = sorted(names & auth_names)
+    missing_auth = sorted(auth_names - names)
+    if found_auth:
+        log_message(f"認証 cookie が検出されました: {', '.join(found_auth)}")
+    if missing_auth:
+        log_message(f"不足している可能性のある auth cookie: {', '.join(missing_auth)}")
+    google_domains = [d for d in domains.keys() if d.endswith("google.com") or d == "google.com"]
+    if not google_domains:
+        log_message("警告: google.com ドメインの認証 cookie が見つかりません。Google アカウント共通の cookie を含めてください。")
+
+
 @app.route("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")
@@ -81,9 +123,11 @@ def download():
             with open(cookiefile_path, "w", encoding="utf-8") as f:
                 f.write(cookie_content)
             log_message("クッキーを環境変数から読み込みました")
+            log_cookie_summary(cookiefile_path, "YOUTUBE_COOKIES")
         elif os.path.exists("cookies.txt"):
             cookiefile_path = os.path.abspath("cookies.txt")
             log_message(f"ローカル cookies.txt を使用: {cookiefile_path}")
+            log_cookie_summary(cookiefile_path, "ローカル cookies.txt")
 
         # タイトル取得（事前情報取得）
         log_message("ビデオ情報を取得中...")
