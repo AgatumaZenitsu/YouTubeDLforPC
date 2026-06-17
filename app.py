@@ -52,9 +52,12 @@ def get_local_cookie_file():
 
 def create_cookiefile_from_env(temp_dir):
     """YOUTUBE_COOKIES 環境変数から一時 cookie ファイルを作成"""
-    env_cookie = os.environ.get("YOUTUBE_COOKIES", "").strip()
-    if not env_cookie:
+    env_cookie = os.environ.get("YOUTUBE_COOKIES", "")
+    if not env_cookie or not env_cookie.strip():
         return None
+
+    # Render の環境変数に貼り付けたときに \n がエスケープされる場合にも対応
+    env_cookie = env_cookie.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\r", "\n")
     cookie_file = os.path.join(temp_dir, "cookies.txt")
     with open(cookie_file, "w", encoding="utf-8") as f:
         f.write(env_cookie)
