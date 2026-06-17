@@ -70,7 +70,7 @@ def get_status():
     """ダウンロード状態を取得"""
     return jsonify(download_state)
 
-@app.route("/download", methods=["POST"])
+@app.route("/download", methods=["GET", "POST"])
 def download():
     """ダウンロード処理"""
     data = request.get_json() or {}
