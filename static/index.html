@@ -548,8 +548,18 @@
                     window.URL.revokeObjectURL(downloadUrl);
                     document.body.removeChild(a);
                 } else {
-                    const error = await response.json();
-                    addLog(`ダウンロードエラー: ${error.error}`, "error");
+                    let errText = '';
+                    try {
+                        const error = await response.json();
+                        errText = error && error.error ? error.error : JSON.stringify(error);
+                    } catch (e) {
+                        try {
+                            errText = await response.text();
+                        } catch (e2) {
+                            errText = response.statusText || `HTTP ${response.status}`;
+                        }
+                    }
+                    addLog(`ダウンロードエラー: ${errText}`, "error");
                     updateStatus("error");
                 }
             } catch (error) {
