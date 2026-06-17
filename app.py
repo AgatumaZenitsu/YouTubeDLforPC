@@ -135,6 +135,9 @@ def download():
 
         if cookie_file:
             ydl_opts["cookiefile"] = cookie_file
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+
         log_message("処理完了、ファイルを送信中...")
         download_state["status"] = "completed"
         download_state["progress"] = 100
