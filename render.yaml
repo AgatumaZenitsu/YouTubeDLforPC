@@ -1,7 +1,14 @@
 services:
   - type: web
-    name: yt-downloader-api
+    name: yt-downloader
     env: python
-    buildCommand: ""
-    startCommand: python app.py
+    region: singapore
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     autoDeploy: true
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_DEBUG
+        value: "0"
