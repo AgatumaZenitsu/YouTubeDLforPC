@@ -1,589 +1,153 @@
+<!-- static/index.html -->
 <!DOCTYPE html>
 <html lang="ja">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube ダウンロード</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <title>YouTube DL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <style>
-        :root {
-            --primary-color: #FF0000;
-            --secondary-color: #282828;
-            --accent-color: #00A8E1;
-        }
-
         body {
-            background: linear-gradient(135deg, var(--secondary-color) 0%, #1a1a1a 100%);
-            color: #fff;
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .main-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-family: sans-serif;
+            background: #fafafa;
+            margin: 0;
             padding: 20px;
         }
 
-        .card-container {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 40px;
-            max-width: 600px;
-            width: 100%;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .header p {
-            color: #999;
-            margin: 0;
-        }
-
-        .form-group {
+        h1 {
             margin-bottom: 20px;
+        }
+
+        .box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 600px;
+            margin: auto;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         }
 
         label {
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #fff;
-            display: block;
+            font-weight: bold;
         }
 
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        input[type="text"],
+        input,
         select {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #fff;
-            padding: 12px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            font-size: 16px;
-        }
-
-        input[type="text"]::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        input[type="text"]:focus,
-        select:focus {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: var(--accent-color);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(0, 168, 225, 0.1);
-        }
-
-        select {
-            cursor: pointer;
-        }
-
-        select option {
-            background: var(--secondary-color);
-            color: #fff;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 16px 0;
+            border-radius: 6px;
+            border: 1px solid #ccc;
         }
 
         button {
-            flex: 1;
-            padding: 12px;
+            padding: 12px 20px;
             border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 15px;
         }
 
-        .btn-download {
-            background: linear-gradient(135deg, var(--primary-color), #cc0000);
+        #downloadBtn {
+            background: #e53935;
             color: white;
         }
 
-        .btn-download:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(255, 0, 0, 0.4);
+        #clearBtn {
+            background: #757575;
+            color: white;
+            margin-left: 10px;
         }
 
-        .btn-download:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .btn-clear {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .btn-clear:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-
-        .status-section {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .status-section.active {
-            display: block;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-
-        .status-badge.ready {
-            background: rgba(100, 150, 255, 0.3);
-            color: #00d4ff;
-        }
-
-        .status-badge.downloading {
-            background: rgba(255, 150, 0, 0.3);
-            color: #ff9500;
-            animation: pulse 1s infinite;
-        }
-
-        .status-badge.completed {
-            background: rgba(100, 255, 100, 0.3);
-            color: #00ff00;
-        }
-
-        .status-badge.error {
-            background: rgba(255, 100, 100, 0.3);
-            color: #ff6b6b;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.6;
-            }
-        }
-
-        .status-info {
-            font-size: 14px;
-            margin-bottom: 15px;
-        }
-
-        .title-display {
-            color: var(--accent-color);
-            word-break: break-all;
-        }
-
-        .progress-section {
-            margin-bottom: 15px;
-        }
-
-        .progress {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            height: 6px;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .progress-bar {
-            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
-            height: 100%;
-            transition: width 0.3s ease;
-        }
-
-        .progress-text {
-            font-size: 12px;
-            color: #999;
-            margin-top: 5px;
-        }
-
-        .log-section {
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 0;
-        }
-
-        .log-title {
-            font-size: 14px;
-            font-weight: bold;
-            color: #999;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .log-box {
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 12px;
+        #logBox {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
             height: 200px;
             overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.5;
-            color: #00ff00;
-        }
-
-        .log-entry {
-            word-break: break-all;
-            margin-bottom: 4px;
-        }
-
-        .log-entry.error {
-            color: #ff6b6b;
-        }
-
-        .log-entry.success {
-            color: #00ff00;
-        }
-
-        .log-entry.warning {
-            color: #ff9500;
-        }
-
-        /* スクロールバーのカスタマイズ */
-        .log-box::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .log-box::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-        }
-
-        .log-box::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-        }
-
-        .log-box::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .error-message {
-            background: rgba(255, 107, 107, 0.2);
-            border-left: 4px solid #ff6b6b;
-            padding: 12px;
-            border-radius: 8px;
-            color: #ff9999;
-            font-size: 14px;
-            margin-bottom: 15px;
-            display: none;
-        }
-
-        .error-message.active {
-            display: block;
-        }
-
-        /* レスポンシブ */
-        @media (max-width: 576px) {
-            .card-container {
-                padding: 25px;
-            }
-
-            .header h1 {
-                font-size: 1.8rem;
-            }
-
-            .input-group {
-                flex-direction: column;
-            }
-
-            input[type="text"],
-            select {
-                width: 100%;
-            }
-
-            .button-group {
-                flex-direction: column;
-            }
+            margin-top: 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            white-space: pre-line;
         }
     </style>
 </head>
 
 <body>
-    <div class="main-container">
-        <div class="card-container">
-            <div class="header">
-                <h1><i class="fab fa-youtube"></i> YouTube DL</h1>
-                <p>ビデオと音声をダウンロード</p>
-            </div>
+    <div class="box">
+        <h1>YouTube DL</h1>
 
-            <div class="error-message" id="errorMessage">
-                <i class="fas fa-exclamation-circle"></i>
-                <span id="errorText"></span>
-            </div>
+        <label>YouTube URL</label>
+        <input id="urlInput" placeholder="https://www.youtube.com">
 
-            <form id="downloadForm">
-                <div class="form-group">
-                    <label for="urlInput">YouTube URL</label>
-                    <input type="text" id="urlInput" placeholder="https://www.youtube.com/watch?v=..." required>
-                </div>
+        <label>ダウンロード形式</label>
+        <select id="typeSelect">
+            <option value="audio">音声 (MP3)</option>
+            <option value="video">動画 (MP4)</option>
+        </select>
 
-                <div class="form-group">
-                    <label for="typeSelect">ダウンロード形式</label>
-                    <select id="typeSelect">
-                        <option value="audio">🎵 音声 (MP3)</option>
-                        <option value="video">🎬 動画 (MP4)</option>
-                    </select>
-                </div>
+        <button id="downloadBtn">ダウンロード</button>
+        <button id="clearBtn">クリア</button>
 
-                <div class="button-group">
-                    <button type="submit" class="btn-download" id="downloadBtn">
-                        <i class="fas fa-download"></i> ダウンロード
-                    </button>
-                    <button type="button" class="btn-clear" id="clearBtn">
-                        <i class="fas fa-trash-alt"></i> クリア
-                    </button>
-                </div>
-            </form>
-
-            <div class="status-section" id="statusSection">
-                <div class="status-badge" id="statusBadge">READY</div>
-                <div class="status-info">
-                    <span id="statusText">準備完了</span>
-                </div>
-                <div class="progress-section">
-                    <div class="progress">
-                        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
-                    </div>
-                    <div class="progress-text">
-                        進捗: <span id="progressText">0%</span>
-                    </div>
-                </div>
-                <div id="titleSection" style="display: none; margin-top: 10px;">
-                    <small style="color: #999;">タイトル:</small>
-                    <div class="title-display" id="titleDisplay"></div>
-                </div>
-            </div>
-
-            <div class="log-section">
-                <div class="log-title"><i class="fas fa-terminal"></i> ログ</div>
-                <div class="log-box" id="logBox"></div>
-            </div>
-        </div>
+        <div id="logBox">ログ：</div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const urlInput = document.getElementById("urlInput");
-        const typeSelect = document.getElementById("typeSelect");
-        const downloadBtn = document.getElementById("downloadBtn");
-        const clearBtn = document.getElementById("clearBtn");
         const logBox = document.getElementById("logBox");
-        const statusSection = document.getElementById("statusSection");
-        const statusBadge = document.getElementById("statusBadge");
-        const statusText = document.getElementById("statusText");
-        const progressBar = document.getElementById("progressBar");
-        const progressText = document.getElementById("progressText");
-        const titleDisplay = document.getElementById("titleDisplay");
-        const titleSection = document.getElementById("titleSection");
-        const errorMessage = document.getElementById("errorMessage");
-        const errorText = document.getElementById("errorText");
-        const downloadForm = document.getElementById("downloadForm");
 
-        let isDownloading = false;
-        let statusCheckInterval = null;
-
-        function updateUI() {
-            downloadBtn.disabled = isDownloading;
-            urlInput.disabled = isDownloading;
-            typeSelect.disabled = isDownloading;
-        }
-
-        function clearUI() {
-            logBox.innerHTML = "";
-            statusSection.classList.remove("active");
-            errorMessage.classList.remove("active");
-            isDownloading = false;
-            updateUI();
-            if (statusCheckInterval) {
-                clearInterval(statusCheckInterval);
-            }
-        }
-
-        function addLog(message, type = "normal") {
-            const logEntry = document.createElement("div");
-            logEntry.className = `log-entry${type ? " " + type : ""}`;
-            logEntry.textContent = message;
-            logBox.appendChild(logEntry);
+        function addLog(msg) {
+            const time = new Date().toLocaleTimeString();
+            logBox.textContent += `[${time}] ${msg}\n`;
             logBox.scrollTop = logBox.scrollHeight;
         }
 
-        function updateStatus(status) {
-            statusSection.classList.add("active");
-
-            const statusMap = {
-                ready: { badge: "準備完了", class: "ready", icon: "fas fa-check-circle" },
-                downloading: { badge: "ダウンロード中", class: "downloading", icon: "fas fa-spinner fa-spin" },
-                completed: { badge: "完了", class: "completed", icon: "fas fa-check" },
-                error: { badge: "エラー", class: "error", icon: "fas fa-exclamation-triangle" }
-            };
-
-            const info = statusMap[status] || statusMap.ready;
-            statusBadge.textContent = info.badge;
-            statusBadge.className = `status-badge ${info.class}`;
-            statusText.innerHTML = `<i class="${info.icon}"></i> ${info.badge}`;
-        }
-
-        async function checkStatus() {
-            try {
-                const response = await fetch("/api/status");
-                const data = await response.json();
-
-                updateStatus(data.status);
-                progressBar.style.width = data.progress + "%";
-                progressText.textContent = data.progress + "%";
-
-                if (data.title) {
-                    titleSection.style.display = "block";
-                    titleDisplay.textContent = data.title;
-                }
-
-                if (data.error) {
-                    errorMessage.classList.add("active");
-                    errorText.textContent = data.error;
-                }
-
-                if (data.status === "completed" || data.status === "error") {
-                    if (statusCheckInterval) {
-                        clearInterval(statusCheckInterval);
-                    }
-                    isDownloading = false;
-                    updateUI();
-                }
-            } catch (error) {
-                console.error("Status check failed:", error);
+        async function fetchStatus() {
+            const res = await fetch("/api/status");
+            const data = await res.json();
+            if (data.logs) {
+                logBox.textContent = data.logs.join("\n");
             }
         }
 
-        downloadForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-
-            const url = urlInput.value.trim();
-            const type = typeSelect.value;
+        document.getElementById("downloadBtn").onclick = async () => {
+            const url = document.getElementById("urlInput").value;
+            const type = document.getElementById("typeSelect").value;
 
             if (!url) {
-                addLog("エラー: URLを入力してください", "error");
+                addLog("URL が入力されていません");
                 return;
             }
 
-            // UI初期化
-            clearUI();
-            isDownloading = true;
-            updateUI();
-            addLog("ダウンロード要求を送信中...", "warning");
+            addLog("ダウンロード開始…");
 
-            try {
-                const response = await fetch("/download", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ url, type })
-                });
+            const res = await fetch("/download", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url, type })
+            });
 
-                // ステータス確認を開始
-                statusCheckInterval = setInterval(checkStatus, 500);
-                await checkStatus();
-
-                if (response.ok) {
-                    addLog("ダウンロード完了!", "success");
-                    updateStatus("completed");
-                    // ファイルをダウンロード
-                    const blob = await response.blob();
-                    const downloadUrl = window.URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = downloadUrl;
-                    a.download = titleDisplay.textContent || "downloaded";
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(downloadUrl);
-                    document.body.removeChild(a);
-                } else {
-                    let errText = '';
-                    try {
-                        const error = await response.json();
-                        errText = error && error.error ? error.error : JSON.stringify(error);
-                    } catch (e) {
-                        try {
-                            errText = await response.text();
-                        } catch (e2) {
-                            errText = response.statusText || `HTTP ${response.status}`;
-                        }
-                    }
-                    addLog(`ダウンロードエラー: ${errText}`, "error");
-                    updateStatus("error");
-                }
-            } catch (error) {
-                addLog(`エラー: ${error.message}`, "error");
-                updateStatus("error");
-                errorMessage.classList.add("active");
-                errorText.textContent = error.message;
+            if (!res.ok) {
+                addLog("エラーが発生しました");
+                return;
             }
 
-            isDownloading = false;
-            updateUI();
-            if (statusCheckInterval) {
-                clearInterval(statusCheckInterval);
-            }
-        });
+            // Blob として受け取り、ダウンロード
+            const blob = await res.blob();
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "download";
+            a.click();
 
-        clearBtn.addEventListener("click", () => {
-            clearUI();
-            urlInput.value = "";
-            urlInput.focus();
-        });
+            addLog("ダウンロード完了");
+        };
 
-        // 初期化
-        updateUI();
+        document.getElementById("clearBtn").onclick = () => {
+            logBox.textContent = "";
+        };
+
+        // 1秒ごとにステータス更新
+        setInterval(fetchStatus, 1000);
     </script>
 </body>
 
