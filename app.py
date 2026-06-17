@@ -128,7 +128,8 @@ def download():
                     "key": "FFmpegExtractAudio",
                     "preferredcodec": "mp3",
                     "preferredquality": "192",
-                }]
+                }],
+                "js_runtime": "node",
             }
             target_file = os.path.join(temp_dir, f"{title}.mp3")
             log_message("音声ファイル形式: MP3")
