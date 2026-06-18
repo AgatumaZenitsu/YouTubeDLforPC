@@ -8,15 +8,21 @@ from datetime import datetime
 from pathlib import Path
 import re
 from threading import Lock
+import sys
+
+# 🌟 サーバー起動時に、ダウンロードしたNode.jsを強制的に認識させる
+node_path = os.path.abspath("bin")
+if node_path not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = node_path + os.pathsep + os.environ.get("PATH", "")
 
 app = Flask(__name__, static_folder="static")
 CORS(app)
 
-# ダウンロード一時保存ディレクトリ（プロセス単位）
+# ダウンロード一時保存ディレクトリ
 downloads_dir = Path(tempfile.gettempdir()) / "yt_downloader_files"
 downloads_dir.mkdir(parents=True, exist_ok=True)
 
-# グローバル状態（単一ジョブ互換）
+# グローバル状態
 download_state = {
     "status": "idle",
     "logs": [],
@@ -29,7 +35,6 @@ _state_lock = Lock()
 
 
 def safe_filename(name: str, maxlen: int = 200) -> str:
-    """簡易ファイル名サニタイズ"""
     if not isinstance(name, str):
         name = str(name or "downloaded")
     name = re.sub(r'[\x00-\x1f<>:"/\\|?*]+', '_', name)
@@ -40,7 +45,6 @@ def safe_filename(name: str, maxlen: int = 200) -> str:
 
 
 def log_message(message: str):
-    """ログを記録（スレッドセーフ）"""
     timestamp = datetime.now().strftime("%H:%M:%S")
     log_entry = f"[{timestamp}] {message}"
     with _state_lock:
@@ -51,7 +55,6 @@ def log_message(message: str):
 
 
 def progress_hook(d):
-    """yt-dlp の進捗フック"""
     try:
         status = d.get("status")
         if status == "downloading":
@@ -69,7 +72,6 @@ def progress_hook(d):
 
 
 def parse_netscape_cookie_file(cookie_path):
-    """Netscape 形式 cookie ファイルを解析"""
     domains = {}
     names = set()
     try:
@@ -100,7 +102,7 @@ def log_cookie_summary(cookie_path, source):
     if found_auth:
         log_message(f"✅ 認証 cookie を検出しました: {', '.join(found_auth)}")
     else:
-        log_message("⚠️ Google/YouTubeの認証 cookie が見つかりません。ログアウト状態の可能性があります。")
+        log_message("⚠️ 認証 cookie が見つかりません。ログアウト状態の可能性があります。")
 
 
 @app.route("/")
@@ -110,7 +112,6 @@ def index():
 
 @app.route("/api/status", methods=["GET"])
 def get_status():
-    """現在のダウンロード状態を返す"""
     with _state_lock:
         state_copy = dict(download_state)
         state_copy["logs"] = list(download_state["logs"])
@@ -122,10 +123,8 @@ def download():
     data = request.get_json() or {}
     url = data.get("url") or request.args.get("url")
     type_ = data.get("type", "audio") or request.args.get("type", "audio")
-    
-    # 🌟 画面から画質(quality)設定を受け取る（デフォルトは最高画質）
     quality = data.get("quality", "best")
-    user_cookies = data.get("cookies")  # UIから送られたクッキー
+    user_cookies = data.get("cookies")
 
     if not url:
         with _state_lock:
@@ -133,7 +132,6 @@ def download():
             download_state["status"] = "error"
         return jsonify({"error": "URL is required"}), 400
 
-    # 初期化
     with _state_lock:
         download_state["status"] = "downloading"
         download_state["logs"] = []
@@ -143,12 +141,17 @@ def download():
         download_state["file_path"] = None
 
     log_message(f"ダウンロード開始: {type_} モード")
+    
+    # 🌟 Node.jsが無事に認識されているかログに出力する
+    if shutil.which("node"):
+        log_message("✅ JavaScriptエンジン(Node.js)を認識しました")
+    else:
+        log_message("⚠️ JavaScriptエンジンが見つかりません。パズル突破に失敗する可能性があります")
 
     temp_dir = tempfile.mkdtemp(dir=str(downloads_dir))
     cookiefile_path = None
 
     try:
-        # 1. UIからのクッキー入力を最優先
         cookie_env = os.environ.get("YOUTUBE_COOKIES")
         if user_cookies and user_cookies.strip():
             cookiefile_path = os.path.join(temp_dir, "cookies.txt")
@@ -156,22 +159,21 @@ def download():
                 f.write(user_cookies)
             log_message("UIから入力された Cookie を使用します")
             log_cookie_summary(cookiefile_path, "UI入力")
-        
-        # 2. 環境変数からのクッキー
         elif cookie_env:
             cookiefile_path = os.path.join(temp_dir, "cookies.txt")
             cookie_content = cookie_env.replace("\\n", "\n")
             with open(cookiefile_path, "w", encoding="utf-8") as f:
                 f.write(cookie_content)
-            log_message("環境変数(YOUTUBE_COOKIES)の Cookie を使用します")
+            log_message("環境変数の Cookie を使用します")
             log_cookie_summary(cookiefile_path, "環境変数")
 
-        # 共通の yt-dlp オプション (Bot対策ヘッダー等)
+        # 🌟 共通の yt-dlp オプション (Bot対策・クライアント設定の最適化)
         base_ydl_opts = {
              "quiet": True,
              "extractor_args": {
                 "youtube": {
-                    "player_client": ["android", "web"],
+                    # androidはCookie非対応で弾かれるため、iosやtvを優先
+                    "player_client": ["ios", "tv", "web"],
                 }
              },
              "http_headers": {
@@ -210,14 +212,12 @@ def download():
             target_file = os.path.join(temp_dir, f"{title}.mp3")
         else:
             output_path = os.path.join(temp_dir, f"{title}.%(ext)s")
-            
-            # 🌟 画質設定に基づいて指定の解像度以下のフォーマットを選択する
             if quality == "best":
                 format_str = "bestvideo+bestaudio/best"
             else:
                 format_str = f"bestvideo[height<={quality}]+bestaudio/best[height<={quality}]/best"
             
-            log_message(f"選択された画質制限: {quality}p以下 (指定形式: {format_str})")
+            log_message(f"選択された画質制限: {quality} (指定形式: {format_str})")
 
             ydl_opts.update({
                 "format": format_str,

@@ -8,7 +8,10 @@ services:
     buildCommand: |
       pip install --upgrade pip
       pip install -r requirements.txt
-      nodeenv -p
+      # Node.jsの本体を直接ダウンロードして配置する強行突破
+      curl -fsSL https://nodejs.org/dist/v20.12.2/node-v20.12.2-linux-x64.tar.xz | tar -xJ
+      mkdir -p bin
+      cp node-v20.12.2-linux-x64/bin/node bin/
       bash build.sh
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 600
     autoDeploy: true
