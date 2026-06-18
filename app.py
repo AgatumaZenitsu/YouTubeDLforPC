@@ -208,7 +208,7 @@ def download():
         else:
             output_path = os.path.join(temp_dir, f"{title}.%(ext)s")
             ydl_opts.update({
-                "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+                "format": "best", # ←「一番良い画質のファイル」に条件を緩める
                 "outtmpl": output_path,
                 "noplaylist": True,
                 "progress_hooks": [progress_hook],
