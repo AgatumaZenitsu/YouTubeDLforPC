@@ -122,6 +122,9 @@ def download():
     data = request.get_json() or {}
     url = data.get("url") or request.args.get("url")
     type_ = data.get("type", "audio") or request.args.get("type", "audio")
+    
+    # 🌟 画面から画質(quality)設定を受け取る（デフォルトは最高画質）
+    quality = data.get("quality", "best")
     user_cookies = data.get("cookies")  # UIから送られたクッキー
 
     if not url:
@@ -207,8 +210,17 @@ def download():
             target_file = os.path.join(temp_dir, f"{title}.mp3")
         else:
             output_path = os.path.join(temp_dir, f"{title}.%(ext)s")
+            
+            # 🌟 画質設定に基づいて指定の解像度以下のフォーマットを選択する
+            if quality == "best":
+                format_str = "bestvideo+bestaudio/best"
+            else:
+                format_str = f"bestvideo[height<={quality}]+bestaudio/best[height<={quality}]/best"
+            
+            log_message(f"選択された画質制限: {quality}p以下 (指定形式: {format_str})")
+
             ydl_opts.update({
-                "format": "best", # ←「一番良い画質のファイル」に条件を緩める
+                "format": format_str,
                 "outtmpl": output_path,
                 "noplaylist": True,
                 "progress_hooks": [progress_hook],
