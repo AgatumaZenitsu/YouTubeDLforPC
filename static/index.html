@@ -111,9 +111,19 @@
 
     <div class="form-group">
         <label for="typeSelect">ダウンロード形式</label>
-        <select id="typeSelect">
-            <option value="audio">音声 (MP3)</option>
+        <select id="typeSelect" onchange="toggleQualitySelect()">
             <option value="video">動画 (MP4)</option>
+            <option value="audio">音声 (MP3)</option>
+        </select>
+    </div>
+
+    <div class="form-group" id="qualityGroup">
+        <label for="qualitySelect">画質 (動画の場合のみ)</label>
+        <select id="qualitySelect">
+            <option value="best">最高画質 (取得可能なベスト)</option>
+            <option value="1080">1080p 以下</option>
+            <option value="720" selected>720p 以下 (推奨)</option>
+            <option value="480">480p 以下</option>
         </select>
     </div>
 
@@ -140,9 +150,21 @@
             document.getElementById('logArea').innerText = '';
         }
 
+        // 音声のときは画質選択を隠す
+        function toggleQualitySelect() {
+            const type = document.getElementById('typeSelect').value;
+            const qualityGroup = document.getElementById('qualityGroup');
+            if (type === 'audio') {
+                qualityGroup.style.display = 'none';
+            } else {
+                qualityGroup.style.display = 'block';
+            }
+        }
+
         async function startDownload() {
             const url = document.getElementById('urlInput').value.trim();
             const type = document.getElementById('typeSelect').value;
+            const quality = document.getElementById('qualitySelect').value;
             const cookies = document.getElementById('cookieInput').value.trim();
 
             if (!url) {
@@ -155,22 +177,20 @@
             document.getElementById('progressContainer').style.display = 'block';
             document.getElementById('progressBar').style.width = '0%';
 
-            // ログのポーリングを開始
             if (statusInterval) clearInterval(statusInterval);
             statusInterval = setInterval(fetchStatus, 1000);
 
             try {
+                const requestData = { url: url, type: type, quality: quality, cookies: cookies };
+
                 const response = await fetch('/download', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url, type: type, cookies: cookies })
+                    body: JSON.stringify(requestData)
                 });
 
                 if (response.ok) {
-                    // バイナリデータとしてファイルを受信
                     const blob = await response.blob();
-
-                    // ファイル名を取得（ヘッダーから抽出できなければデフォルト名）
                     let filename = "downloaded_file";
                     const disposition = response.headers.get('Content-Disposition');
                     if (disposition && disposition.indexOf('attachment') !== -1) {
@@ -183,7 +203,6 @@
                         filename = type === 'audio' ? 'audio.mp3' : 'video.mp4';
                     }
 
-                    // ダウンロードリンクを生成してクリック
                     const downloadUrl = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.style.display = 'none';
@@ -201,7 +220,6 @@
                 console.error("Fetch Error:", error);
             } finally {
                 downloadBtn.disabled = false;
-                // ポーリングを少し遅延して停止（最後のログを拾うため）
                 setTimeout(() => {
                     if (statusInterval) clearInterval(statusInterval);
                     fetchStatus();
@@ -214,13 +232,9 @@
                 const response = await fetch('/api/status');
                 if (response.ok) {
                     const data = await response.json();
-
-                    // ログエリアの更新
                     const logArea = document.getElementById('logArea');
                     logArea.innerText = data.logs.join('\n');
                     logArea.scrollTop = logArea.scrollHeight;
-
-                    // プログレスバーの更新
                     if (data.progress > 0) {
                         document.getElementById('progressBar').style.width = data.progress + '%';
                     }
@@ -229,6 +243,9 @@
                 console.log("Status fetch error", error);
             }
         }
+
+        // 初期化時に一度実行
+        toggleQualitySelect();
     </script>
 </body>
 
