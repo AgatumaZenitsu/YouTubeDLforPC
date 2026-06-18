@@ -1,15 +1,8 @@
 #!/bin/bash
 
-# Update package lists
-apt-get update
+# Render の Python Web Service では apt-get は使えない
+# FFmpeg は標準で入っているのでインストール不要
 
-# Install FFmpeg and Node.js for yt-dlp JavaScript extraction
-apt-get install -y ffmpeg nodejs npm
-
-# Ensure node binary is available for yt-dlp
-if [ ! -x "/usr/bin/node" ] && [ -x "/usr/bin/nodejs" ]; then
-  ln -sf /usr/bin/nodejs /usr/bin/node
-fi
-
-# Install Python dependencies
+# Python 依存をインストール
+pip install --upgrade pip
 pip install -r requirements.txt

@@ -4,150 +4,231 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YouTube DL</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <style>
         body {
             font-family: sans-serif;
-            background: #fafafa;
-            margin: 0;
+            max-width: 800px;
+            margin: 0 auto;
             padding: 20px;
+            background-color: #f9f9f9;
         }
 
         h1 {
-            margin-bottom: 20px;
+            color: #333;
         }
 
-        .box {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 600px;
-            margin: auto;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        .form-group {
+            margin-bottom: 15px;
         }
 
         label {
+            display: block;
+            margin-bottom: 5px;
             font-weight: bold;
         }
 
-        input,
-        select {
+        input[type="text"],
+        select,
+        textarea {
             width: 100%;
             padding: 10px;
-            margin: 8px 0 16px 0;
-            border-radius: 6px;
             border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            font-family: monospace;
+            font-size: 12px;
         }
 
         button {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 16px;
             cursor: pointer;
-            font-size: 15px;
+            border: none;
+            border-radius: 4px;
         }
 
-        #downloadBtn {
-            background: #e53935;
+        .btn-primary {
+            background-color: #007bff;
             color: white;
         }
 
-        #clearBtn {
-            background: #757575;
+        .btn-primary:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
             color: white;
             margin-left: 10px;
         }
 
-        #logBox {
-            background: #000;
+        #logArea {
+            width: 100%;
+            height: 300px;
+            background-color: #222;
             color: #0f0;
             padding: 10px;
-            height: 200px;
+            font-family: monospace;
             overflow-y: auto;
+            border-radius: 4px;
+            box-sizing: border-box;
             margin-top: 20px;
-            border-radius: 6px;
-            font-size: 13px;
-            white-space: pre-line;
+            white-space: pre-wrap;
+        }
+
+        .progress-container {
+            width: 100%;
+            background-color: #ddd;
+            border-radius: 4px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background-color: #28a745;
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.3s;
         }
     </style>
 </head>
 
 <body>
-    <div class="box">
-        <h1>YouTube DL</h1>
 
-        <label>YouTube URL</label>
-        <input id="urlInput" placeholder="https://www.youtube.com">
+    <h1>YouTube DL</h1>
 
-        <label>ダウンロード形式</label>
+    <div class="form-group">
+        <label for="urlInput">YouTube URL</label>
+        <input type="text" id="urlInput" placeholder="https://www.youtube.com/watch?v=...">
+    </div>
+
+    <div class="form-group">
+        <label for="typeSelect">ダウンロード形式</label>
         <select id="typeSelect">
             <option value="audio">音声 (MP3)</option>
             <option value="video">動画 (MP4)</option>
         </select>
-
-        <button id="downloadBtn">ダウンロード</button>
-        <button id="clearBtn">クリア</button>
-
-        <div id="logBox">ログ：</div>
     </div>
 
-    <script>
-        const logBox = document.getElementById("logBox");
+    <div class="form-group">
+        <label for="cookieInput">YouTube Cookies (エラーが出る場合のみ、Get cookies.txt 等で取得したテキストを貼り付け)</label>
+        <textarea id="cookieInput" rows="5" placeholder="# Netscape HTTP Cookie File&#10;..."></textarea>
+    </div>
 
-        function addLog(msg) {
-            const time = new Date().toLocaleTimeString();
-            logBox.textContent += `[${time}] ${msg}\n`;
-            logBox.scrollTop = logBox.scrollHeight;
+    <div class="form-group">
+        <button id="downloadBtn" class="btn-primary" onclick="startDownload()">ダウンロード</button>
+        <button class="btn-secondary" onclick="clearLogs()">クリア</button>
+    </div>
+
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div id="logArea"></div>
+
+    <script>
+        let statusInterval = null;
+
+        function clearLogs() {
+            document.getElementById('logArea').innerText = '';
+        }
+
+        async function startDownload() {
+            const url = document.getElementById('urlInput').value.trim();
+            const type = document.getElementById('typeSelect').value;
+            const cookies = document.getElementById('cookieInput').value.trim();
+
+            if (!url) {
+                alert("URLを入力してください");
+                return;
+            }
+
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.disabled = true;
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('progressBar').style.width = '0%';
+
+            // ログのポーリングを開始
+            if (statusInterval) clearInterval(statusInterval);
+            statusInterval = setInterval(fetchStatus, 1000);
+
+            try {
+                const response = await fetch('/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url, type: type, cookies: cookies })
+                });
+
+                if (response.ok) {
+                    // バイナリデータとしてファイルを受信
+                    const blob = await response.blob();
+
+                    // ファイル名を取得（ヘッダーから抽出できなければデフォルト名）
+                    let filename = "downloaded_file";
+                    const disposition = response.headers.get('Content-Disposition');
+                    if (disposition && disposition.indexOf('attachment') !== -1) {
+                        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                        const matches = filenameRegex.exec(disposition);
+                        if (matches != null && matches[1]) {
+                            filename = decodeURIComponent(matches[1].replace(/['"]/g, ''));
+                        }
+                    } else {
+                        filename = type === 'audio' ? 'audio.mp3' : 'video.mp4';
+                    }
+
+                    // ダウンロードリンクを生成してクリック
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = downloadUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(downloadUrl);
+                    document.body.removeChild(a);
+                } else {
+                    const errData = await response.json();
+                    console.error("Download Error:", errData);
+                }
+            } catch (error) {
+                console.error("Fetch Error:", error);
+            } finally {
+                downloadBtn.disabled = false;
+                // ポーリングを少し遅延して停止（最後のログを拾うため）
+                setTimeout(() => {
+                    if (statusInterval) clearInterval(statusInterval);
+                    fetchStatus();
+                }, 2000);
+            }
         }
 
         async function fetchStatus() {
-            const res = await fetch("/api/status");
-            const data = await res.json();
-            if (data.logs) {
-                logBox.textContent = data.logs.join("\n");
+            try {
+                const response = await fetch('/api/status');
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // ログエリアの更新
+                    const logArea = document.getElementById('logArea');
+                    logArea.innerText = data.logs.join('\n');
+                    logArea.scrollTop = logArea.scrollHeight;
+
+                    // プログレスバーの更新
+                    if (data.progress > 0) {
+                        document.getElementById('progressBar').style.width = data.progress + '%';
+                    }
+                }
+            } catch (error) {
+                console.log("Status fetch error", error);
             }
         }
-
-        document.getElementById("downloadBtn").onclick = async () => {
-            const url = document.getElementById("urlInput").value;
-            const type = document.getElementById("typeSelect").value;
-
-            if (!url) {
-                addLog("URL が入力されていません");
-                return;
-            }
-
-            addLog("ダウンロード開始…");
-
-            const res = await fetch("/download", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url, type })
-            });
-
-            if (!res.ok) {
-                addLog("エラーが発生しました");
-                return;
-            }
-
-            // Blob として受け取り、ダウンロード
-            const blob = await res.blob();
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "download";
-            a.click();
-
-            addLog("ダウンロード完了");
-        };
-
-        document.getElementById("clearBtn").onclick = () => {
-            logBox.textContent = "";
-        };
-
-        // 1秒ごとにステータス更新
-        setInterval(fetchStatus, 1000);
     </script>
 </body>
 

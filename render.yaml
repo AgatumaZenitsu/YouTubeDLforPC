@@ -5,11 +5,18 @@ services:
     region: singapore
     plan: free
     rootDirectory: .
-    buildCommand: bash build.sh
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      bash build.sh
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 600
     autoDeploy: true
+
     envVars:
       - key: FLASK_ENV
-        value: production
+        value: "production"
       - key: FLASK_DEBUG
         value: "0"
+      - key: YOUTUBE_COOKIES
+        sync: false   # Render Dashboard で手動入力する
+
