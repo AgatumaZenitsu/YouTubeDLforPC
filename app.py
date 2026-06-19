@@ -170,15 +170,15 @@ def download():
         # 🌟 共通の yt-dlp オプション (Bot対策・クライアント設定の最適化)
         base_ydl_opts = {
              "quiet": True,
-             "extractor_args": {
-                "youtube": {
-                    # androidはCookie非対応で弾かれるため、iosやtvを優先
-                    "player_client": ["ios", "tv", "web"],
-                }
-             },
              "http_headers": {
                  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                  "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+             },
+             # 👇 ここに extractor_args を追加して、スマホアプリとして振る舞うように偽装します
+             "extractor_args": {
+                 "youtube": {
+                     "client": ["android", "ios"]
+                 }
              }
         }
 
