@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"name": "YouTubeDLforPC",
+			"path": "."
+		}
+	],
+	"settings": {
+		"github.copilot.chat.agentDebugLog.fileLogging.enabled": true
+	}
+}

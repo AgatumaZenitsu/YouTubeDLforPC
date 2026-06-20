@@ -1,252 +1,251 @@
-<!-- static/index.html -->
 <!DOCTYPE html>
 <html lang="ja">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube DL</title>
+    <title>YT Downloader (Light)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
-        body {
-            font-family: sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f9f9f9;
+        * {
+            transition: background-color 0.2s, border-color 0.2s;
         }
 
-        h1 {
-            color: #333;
+        .log-terminal {
+            background-color: #111;
+            color: #FF80AB;
+            font-family: 'Courier New', monospace;
+            scroll-behavior: smooth;
         }
 
-        .form-group {
-            margin-bottom: 15px;
+        ::-webkit-scrollbar {
+            width: 6px;
         }
 
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        input[type="text"],
-        select,
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-
-        textarea {
-            font-family: monospace;
-            font-size: 12px;
+        ::-webkit-scrollbar-thumb {
+            background: #FF4081;
+            border-radius: 10px;
         }
 
         button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            border: none;
-            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .btn-primary {
-            background-color: #007bff;
-            color: white;
+        button::after {
+            content: "";
+            position: absolute;
+            background: rgba(255, 255, 255, 0.4);
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            pointer-events: none;
         }
 
-        .btn-primary:disabled {
-            background-color: #aaa;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
-            margin-left: 10px;
-        }
-
-        #logArea {
-            width: 100%;
-            height: 300px;
-            background-color: #222;
-            color: #0f0;
-            padding: 10px;
-            font-family: monospace;
-            overflow-y: auto;
-            border-radius: 4px;
-            box-sizing: border-box;
-            margin-top: 20px;
-            white-space: pre-wrap;
-        }
-
-        .progress-container {
-            width: 100%;
-            background-color: #ddd;
-            border-radius: 4px;
-            margin-top: 15px;
-            display: none;
-        }
-
-        .progress-bar {
-            height: 20px;
-            background-color: #28a745;
-            width: 0%;
-            border-radius: 4px;
-            transition: width 0.3s;
+        button:active::after {
+            width: 200px;
+            height: 200px;
+            opacity: 1;
+            transition: width 0.3s ease-out, height 0.3s ease-out, opacity 0.6s;
         }
     </style>
 </head>
 
-<body>
+<body class="min-h-screen p-6 bg-white">
 
-    <h1>YouTube DL</h1>
+    <!-- ★ 左右 50% / 50% レイアウト -->
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-    <div class="form-group">
-        <label for="urlInput">YouTube URL</label>
-        <input type="text" id="urlInput" placeholder="https://www.youtube.com/watch?v=...">
+        <!-- 左側：入力フォーム -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow">
+
+            <div class="flex items-center justify-center gap-4 mb-6">
+                <img src="/static/sua.png" alt="App Logo"
+                    class="w-14 h-14 object-cover rounded-xl border-2 border-[#FF4081]">
+                <h1 class="text-2xl font-bold text-gray-800">
+                    <span class="text-[#FF4081]">YT</span> Downloader
+                </h1>
+            </div>
+
+            <form class="space-y-5" id="downloadForm">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">YouTube URL</label>
+                    <input type="text" id="urlInput"
+                        class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:border-[#FF4081] outline-none"
+                        placeholder="https://youtu.be/..." required>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">ダウンロード形式</label>
+                        <select id="formatInput"
+                            class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:border-[#FF4081] outline-none">
+                            <option value="audio">音声 (MP3)</option>
+                            <option value="video">動画 (MP4)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">画質 (動画のみ)</label>
+                        <select id="qualityInput"
+                            class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:border-[#FF4081] outline-none">
+                            <option value="best">最高画質 (1080p~)</option>
+                            <option value="1080">1080p 以下</option>
+                            <option value="720">720p 以下</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">YouTube Cookies</label>
+                    <textarea id="cookieInput"
+                        class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl outline-none text-xs resize-none"
+                        rows="2" placeholder="必要な場合のみ貼り付け"></textarea>
+                </div>
+
+                <!-- 進捗バー -->
+                <div id="progressWrapper" class="hidden">
+                    <div class="flex justify-between text-xs font-bold text-[#FF4081] mb-1">
+                        <span id="progressText">準備中...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="w-full bg-pink-100 rounded-full h-2">
+                        <div id="progressBar" class="bg-[#FF4081] h-2 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- ボタン -->
+                <div class="flex gap-4 pt-2">
+                    <button type="submit" id="downloadBtn"
+                        class="flex-1 bg-[#FF4081] hover:bg-[#E91E63] text-white font-bold py-3 rounded-xl shadow">
+                        ダウンロード
+                    </button>
+
+                    <button type="button" id="clearBtn"
+                        class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 rounded-xl shadow">
+                        クリア
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 右側：ログ画面 -->
+        <div class="log-terminal rounded-2xl p-4 border border-gray-700 h-[85vh] overflow-y-scroll" id="logArea"></div>
+
     </div>
 
-    <div class="form-group">
-        <label for="typeSelect">ダウンロード形式</label>
-        <select id="typeSelect" onchange="toggleQualitySelect()">
-            <option value="video">動画 (MP4)</option>
-            <option value="audio">音声 (MP3)</option>
-        </select>
-    </div>
-
-    <div class="form-group" id="qualityGroup">
-        <label for="qualitySelect">画質 (動画の場合のみ)</label>
-        <select id="qualitySelect">
-            <option value="best">最高画質 (取得可能なベスト)</option>
-            <option value="1080">1080p 以下</option>
-            <option value="720" selected>720p 以下 (推奨)</option>
-            <option value="480">480p 以下</option>
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label for="cookieInput">YouTube Cookies (エラーが出る場合のみ、Get cookies.txt 等で取得したテキストを貼り付け)</label>
-        <textarea id="cookieInput" rows="5" placeholder="# Netscape HTTP Cookie File&#10;..."></textarea>
-    </div>
-
-    <div class="form-group">
-        <button id="downloadBtn" class="btn-primary" onclick="startDownload()">ダウンロード</button>
-        <button class="btn-secondary" onclick="clearLogs()">クリア</button>
-    </div>
-
-    <div class="progress-container" id="progressContainer">
-        <div class="progress-bar" id="progressBar"></div>
-    </div>
-
-    <div id="logArea"></div>
-
+    <!-- JavaScript（軽量版） -->
     <script>
-        let statusInterval = null;
+        let lastLogCount = 0;
 
-        function clearLogs() {
-            document.getElementById('logArea').innerText = '';
+        function appendLog(line) {
+            const logArea = document.getElementById("logArea");
+            const div = document.createElement("div");
+            div.textContent = line;
+            logArea.appendChild(div);
+            logArea.scrollTop = logArea.scrollHeight;
         }
 
-        // 音声のときは画質選択を隠す
-        function toggleQualitySelect() {
-            const type = document.getElementById('typeSelect').value;
-            const qualityGroup = document.getElementById('qualityGroup');
-            if (type === 'audio') {
-                qualityGroup.style.display = 'none';
-            } else {
-                qualityGroup.style.display = 'block';
-            }
+        function animateButton(btn) {
+            btn.style.transform = "scale(0.92)";
+            setTimeout(() => btn.style.transform = "scale(1)", 120);
         }
 
-        async function startDownload() {
-            const url = document.getElementById('urlInput').value.trim();
-            const type = document.getElementById('typeSelect').value;
-            const quality = document.getElementById('qualitySelect').value;
-            const cookies = document.getElementById('cookieInput').value.trim();
+        // ★ ダウンロード処理
+        document.getElementById("downloadForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
 
-            if (!url) {
-                alert("URLを入力してください");
-                return;
-            }
+            animateButton(document.getElementById("downloadBtn"));
 
-            const downloadBtn = document.getElementById('downloadBtn');
-            downloadBtn.disabled = true;
-            document.getElementById('progressContainer').style.display = 'block';
-            document.getElementById('progressBar').style.width = '0%';
+            const url = document.getElementById("urlInput").value;
+            const format = document.getElementById("formatInput").value;
+            const quality = document.getElementById("qualityInput").value;
+            const cookies = document.getElementById("cookieInput").value;
 
-            if (statusInterval) clearInterval(statusInterval);
-            statusInterval = setInterval(fetchStatus, 1000);
+            appendLog("▶ ダウンロードを開始します...");
+            document.getElementById("progressWrapper").classList.remove("hidden");
 
             try {
-                const requestData = { url: url, type: type, quality: quality, cookies: cookies };
-
-                const response = await fetch('/download', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestData)
+                const response = await fetch("/download", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        url: url,
+                        type: format,
+                        quality: quality,
+                        cookies: cookies
+                    })
                 });
 
-                if (response.ok) {
-                    const blob = await response.blob();
-                    let filename = "downloaded_file";
-                    const disposition = response.headers.get('Content-Disposition');
-                    if (disposition && disposition.indexOf('attachment') !== -1) {
-                        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-                        const matches = filenameRegex.exec(disposition);
-                        if (matches != null && matches[1]) {
-                            filename = decodeURIComponent(matches[1].replace(/['"]/g, ''));
-                        }
-                    } else {
-                        filename = type === 'audio' ? 'audio.mp3' : 'video.mp4';
+                if (!response.ok) {
+                    try {
+                        const errJson = await response.json();
+                        appendLog("▶ エラー: " + (errJson.error || "不明なエラー"));
+                    } catch {
+                        appendLog("▶ エラー: サーバー応答が不正です");
                     }
-
-                    const downloadUrl = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = downloadUrl;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(downloadUrl);
-                    document.body.removeChild(a);
-                } else {
-                    const errData = await response.json();
-                    console.error("Download Error:", errData);
+                    return;
                 }
-            } catch (error) {
-                console.error("Fetch Error:", error);
-            } finally {
-                downloadBtn.disabled = false;
-                setTimeout(() => {
-                    if (statusInterval) clearInterval(statusInterval);
-                    fetchStatus();
-                }, 2000);
-            }
-        }
 
-        async function fetchStatus() {
+                appendLog("▶ ダウンロード完了。保存します...");
+
+                const blob = await response.blob();
+                const urlObj = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = urlObj;
+                a.download = "";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(urlObj);
+
+            } catch (err) {
+                appendLog("▶ 通信エラー: " + err.message);
+            }
+        });
+
+        // ★ クリア（フロントだけ消す）
+        document.getElementById("clearBtn").addEventListener("click", function () {
+            animateButton(this);
+            document.getElementById("urlInput").value = "";
+            document.getElementById("cookieInput").value = "";
+            document.getElementById("logArea").innerHTML = "";
+            lastLogCount = 0;
+            document.getElementById("progressWrapper").classList.add("hidden");
+            appendLog("▶ 入力内容をクリアしました。");
+        });
+
+        // ★ 進捗＆ログ差分更新（3秒間隔）
+        setInterval(async () => {
             try {
-                const response = await fetch('/api/status');
-                if (response.ok) {
-                    const data = await response.json();
-                    const logArea = document.getElementById('logArea');
-                    logArea.innerText = data.logs.join('\n');
-                    logArea.scrollTop = logArea.scrollHeight;
-                    if (data.progress > 0) {
-                        document.getElementById('progressBar').style.width = data.progress + '%';
-                    }
-                }
-            } catch (error) {
-                console.log("Status fetch error", error);
-            }
-        }
+                const res = await fetch("/api/status");
+                const data = await res.json();
 
-        // 初期化時に一度実行
-        toggleQualitySelect();
+                // 進捗バー
+                document.getElementById("progressBar").style.width = data.progress + "%";
+                document.getElementById("progressPercent").textContent = data.progress + "%";
+
+                if (data.status === "downloading") {
+                    document.getElementById("progressText").textContent = "ダウンロード中...";
+                } else if (data.status === "completed") {
+                    document.getElementById("progressText").textContent = "完了";
+                } else if (data.status === "error") {
+                    document.getElementById("progressText").textContent = "エラー";
+                }
+
+                // 差分ログだけ追加
+                const newLogs = data.logs.slice(lastLogCount);
+                newLogs.forEach(line => appendLog(line));
+                lastLogCount = data.logs.length;
+
+            } catch (e) {
+                console.log("status error", e);
+            }
+        }, 3000); // ← 3秒間隔に変更
     </script>
+
 </body>
 
 </html>

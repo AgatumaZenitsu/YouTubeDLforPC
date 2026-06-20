@@ -195,11 +195,12 @@ def download():
                 download_state["title"] = title
             log_message(f"タイトル: {title_raw}")
 
+        # 👇 ご指定のダウンロードロジック（yt-dlp用オプション）の組み込み
         ydl_opts = base_ydl_opts.copy()
         if type_ == "audio":
             output_path = os.path.join(temp_dir, f"{title}.%(ext)s")
             ydl_opts.update({
-                "format": "bestaudio",
+                "format": "bestaudio/best",
                 "outtmpl": output_path,
                 "noplaylist": True,
                 "progress_hooks": [progress_hook],
@@ -212,10 +213,12 @@ def download():
             target_file = os.path.join(temp_dir, f"{title}.mp3")
         else:
             output_path = os.path.join(temp_dir, f"{title}.%(ext)s")
+            
+            # 画質「best」の場合はご要望のフォーマット指定を適用
             if quality == "best":
-                format_str = "bestvideo+bestaudio/best"
+                format_str = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
             else:
-                format_str = f"bestvideo[height<={quality}]+bestaudio/best[height<={quality}]/best"
+                format_str = f"bestvideo[height<={quality}][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
             
             log_message(f"選択された画質制限: {quality} (指定形式: {format_str})")
 
@@ -276,4 +279,11 @@ def download():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
+    
+    # 🌟 EXEから起動されたときだけ、1秒後にブラウザを自動で開く命令を仕込む
+    if not os.environ.get("FLASK_RUN_FROM_CLI"):
+        import webbrowser
+        from threading import Timer
+        Timer(1.0, lambda: webbrowser.open(f"http://localhost:{port}")).start()
+        
     app.run(host="0.0.0.0", port=port, debug=False)
